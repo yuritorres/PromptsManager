@@ -1,4 +1,4 @@
-/// <reference types="vite-plugin-electron/electron-env" />
+﻿/// <reference types="vite-plugin-electron/electron-env" />
 
 declare namespace NodeJS {
   interface ProcessEnv {
@@ -21,7 +21,17 @@ declare namespace NodeJS {
   }
 }
 
+type Prompt = {
+  id: string
+  title: string
+  content: string
+}
+
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
-  ipcRenderer: import('electron').IpcRenderer
+  ipcRenderer?: import('electron').IpcRenderer
+  promptStorage?: {
+    load: () => Promise<Prompt[]>
+    save: (prompts: Prompt[]) => Promise<void>
+  }
 }

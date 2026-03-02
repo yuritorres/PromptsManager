@@ -1,46 +1,99 @@
-import { useEffect, useState } from "react";
-import Sidebar from "./components/sidebar";
+﻿import { useEffect, useState } from "react";
+import Sidebar from "./components/Sidebar";
 import PromptEditor from "./components/PromptEditor";
 import "./index.css";
 
-const STORAGE_KEY = "prompts_storage";
+type Prompt = {
+  id: string;
+  title: string;
+  content: string;
+};
+
+function hasElectronPromptStorage(): boolean {
+  return (
+    typeof window.promptStorage?.load === "function" &&
+    typeof window.promptStorage?.save === "function"
+  );
+}
 
 export default function App() {
-  const [prompts, setPrompts] = useState<any[]>([]);
-  const [selected, setSelected] = useState<any | null>(null);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [selected, setSelected] = useState<Prompt | null>(null);
   const [search, setSearch] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isStorageReady, setIsStorageReady] = useState(false);
 
-  // Carrega prompts do localStorage
   useEffect(() => {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) setPrompts(JSON.parse(data));
+    let isMounted = true;
+
+    async function loadPromptsFromFile() {
+      if (!hasElectronPromptStorage()) {
+        if (isMounted) setIsStorageReady(true);
+        return;
+      }
+
+      try {
+        const storage = window.promptStorage;
+        if (!storage) return;
+
+        const data = await storage.load();
+        if (!isMounted) return;
+
+        setPrompts(data);
+        setIsStorageReady(true);
+      } catch (error) {
+        console.error("Falha ao carregar prompts.json", error);
+        if (isMounted) {
+          setPrompts([]);
+          setIsStorageReady(true);
+        }
+      }
+    }
+
+    void loadPromptsFromFile();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Salva sempre que mudar
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prompts));
-  }, [prompts]);
+    if (!isStorageReady) return;
+
+    if (!hasElectronPromptStorage()) return;
+
+    const storage = window.promptStorage;
+    if (!storage) return;
+
+    void storage.save(prompts).catch((error) => {
+      console.error("Falha ao salvar prompts.json", error);
+    });
+  }, [prompts, isStorageReady]);
 
   const handleSave = (title: string, content: string) => {
+    if (!hasElectronPromptStorage()) {
+      alert("Execute o app pela janela do Electron para salvar em prompts.json.");
+      return;
+    }
+
     if (!title.trim() || !content.trim()) {
-      alert("Título e conteúdo não podem estar vazios.");
+      alert("Titulo e conteudo nao podem estar vazios.");
       return;
     }
 
     if (selected) {
-      setPrompts((prev: any) =>
-        prev.map((p: any) =>
+      setPrompts((prev: Prompt[]) =>
+        prev.map((p: Prompt) =>
           p.id === selected.id ? { ...p, title, content } : p
         )
       );
     } else {
-      const newPrompt = {
+      const newPrompt: Prompt = {
         id: Date.now().toString(36),
         title,
         content,
       };
-      setPrompts((prev: any[]) => [newPrompt, ...prev]);
+      setPrompts((prev: Prompt[]) => [newPrompt, ...prev]);
       setSelected(newPrompt);
     }
 
@@ -48,18 +101,18 @@ export default function App() {
   };
 
   const handleDelete = (id: string) => {
-    setPrompts((prev: any) => prev.filter((p: any) => p.id !== id));
+    setPrompts((prev: Prompt[]) => prev.filter((p: Prompt) => p.id !== id));
     if (selected?.id === id) setSelected(null);
   };
 
   const handleSelect = (id: string) => {
-    const prompt = prompts.find((p: any) => p.id === id);
+    const prompt = prompts.find((p: Prompt) => p.id === id);
     if (prompt) setSelected(prompt);
   };
 
   const handleNew = () => setSelected(null);
 
-  const filteredPrompts = prompts.filter((p: any) =>
+  const filteredPrompts = prompts.filter((p: Prompt) =>
     p.title.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -81,7 +134,7 @@ export default function App() {
         onCopy={() => {
           if (selected?.content)
             navigator.clipboard.writeText(selected.content as string);
-          alert("Conteúdo copiado!");
+          alert("Conteudo copiado!");
         }}
       />
     </div>

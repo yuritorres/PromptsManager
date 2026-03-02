@@ -1,4 +1,10 @@
-import { ipcRenderer, contextBridge } from 'electron'
+﻿import { ipcRenderer, contextBridge } from 'electron'
+
+type Prompt = {
+  id: string
+  title: string
+  content: string
+}
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -18,7 +24,9 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     const [channel, ...omit] = args
     return ipcRenderer.invoke(channel, ...omit)
   },
+})
 
-  // You can expose other APTs you need here.
-  // ...
+contextBridge.exposeInMainWorld('promptStorage', {
+  load: () => ipcRenderer.invoke('prompts:load') as Promise<Prompt[]>,
+  save: (prompts: Prompt[]) => ipcRenderer.invoke('prompts:save', prompts) as Promise<void>,
 })

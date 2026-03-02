@@ -1,5 +1,5 @@
-import PromptList from "./PromptList";
-import { Menu, X, Search, Plus } from 'lucide-react';
+﻿import PromptList from "./PromptList";
+import { Menu, X, Search } from 'lucide-react';
 
 export default function Sidebar({
   isOpen,
@@ -40,7 +40,7 @@ export default function Sidebar({
             <input
               type="text"
               className="search-input"
-              placeholder="Buscar por título"
+              placeholder="Buscar por tÃ­tulo"
               onChange={(e) => onSearch(e.target.value)}
             />
             <button className="btn-primary btn btn-full" onClick={onNew}>
