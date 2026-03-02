@@ -63,6 +63,11 @@ async function loadPromptsFromWebApi(): Promise<StoredPrompt[]> {
     throw new Error(`Falha ao carregar prompts.json (${response.status})`);
   }
 
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error("Resposta invalida de /api/prompts (nao-JSON)");
+  }
+
   const payload: unknown = await response.json();
   if (!Array.isArray(payload)) {
     return [];
