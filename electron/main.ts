@@ -19,6 +19,7 @@ type Prompt = {
   id: string
   title: string
   content: string
+  category?: string
 }
 
 function getPromptsFilePath(): string {
@@ -39,7 +40,8 @@ function isPromptArray(value: unknown): value is Prompt[] {
     return (
       typeof prompt.id === 'string' &&
       typeof prompt.title === 'string' &&
-      typeof prompt.content === 'string'
+      typeof prompt.content === 'string' &&
+      (prompt.category === undefined || typeof prompt.category === 'string')
     )
   })
 }

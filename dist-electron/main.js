@@ -21,7 +21,7 @@ function isPromptArray(value) {
       return false;
     }
     const prompt = item;
-    return typeof prompt.id === "string" && typeof prompt.title === "string" && typeof prompt.content === "string";
+    return typeof prompt.id === "string" && typeof prompt.title === "string" && typeof prompt.content === "string" && (prompt.category === void 0 || typeof prompt.category === "string");
   });
 }
 async function loadPrompts() {

@@ -25,6 +25,7 @@ type Prompt = {
   id: string
   title: string
   content: string
+  category?: string
 }
 
 // Used in Renderer process, expose in `preload.ts`

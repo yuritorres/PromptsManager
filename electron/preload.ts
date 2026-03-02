@@ -4,6 +4,7 @@ type Prompt = {
   id: string
   title: string
   content: string
+  category?: string
 }
 
 // --------- Expose some API to the Renderer process ---------

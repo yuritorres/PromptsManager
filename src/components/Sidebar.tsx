@@ -1,11 +1,23 @@
-﻿import PromptList from "./PromptList";
-import { Menu, X, Search } from 'lucide-react';
+import PromptList from "./PromptList";
+import { Menu, X, Search } from "lucide-react";
+
+type Prompt = {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+};
 
 export default function Sidebar({
   isOpen,
   onOpen,
   onClose,
   prompts,
+  categories,
+  categoryCounts,
+  totalPrompts,
+  selectedCategory,
+  onCategoryChange,
   onSearch,
   onSelect,
   onDelete,
@@ -14,7 +26,12 @@ export default function Sidebar({
   isOpen: boolean;
   onOpen: () => void;
   onClose: () => void;
-  prompts: any[];
+  prompts: Prompt[];
+  categories: string[];
+  categoryCounts: Record<string, number>;
+  totalPrompts: number;
+  selectedCategory: string;
+  onCategoryChange: (value: string) => void;
   onSearch: (value: string) => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
@@ -40,15 +57,33 @@ export default function Sidebar({
             <input
               type="text"
               className="search-input"
-              placeholder="Buscar por tÃ­tulo"
+              placeholder="Buscar por titulo"
               onChange={(e) => onSearch(e.target.value)}
             />
+
+            <select
+              className="category-select"
+              value={selectedCategory}
+              onChange={(e) => onCategoryChange(e.target.value)}
+            >
+              <option value="Todas">Todas as categorias ({totalPrompts})</option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category} ({categoryCounts[category] || 0})
+                </option>
+              ))}
+            </select>
+
             <button className="btn-primary btn btn-full" onClick={onNew}>
               Novo prompt
             </button>
           </div>
 
-          <PromptList prompts={prompts} onSelect={onSelect} onDelete={onDelete} />
+          <PromptList
+            prompts={prompts}
+            onSelect={onSelect}
+            onDelete={onDelete}
+          />
         </div>
       </aside>
     </>

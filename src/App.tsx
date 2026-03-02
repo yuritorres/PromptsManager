@@ -1,12 +1,21 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Sidebar from "./components/Sidebar";
 import PromptEditor from "./components/PromptEditor";
 import "./index.css";
+import "./categories.css";
 
 type Prompt = {
   id: string;
   title: string;
   content: string;
+  category: string;
+};
+
+type StoredPrompt = {
+  id: string;
+  title: string;
+  content: string;
+  category?: string;
 };
 
 function hasElectronPromptStorage(): boolean {
@@ -16,10 +25,20 @@ function hasElectronPromptStorage(): boolean {
   );
 }
 
+function normalizePrompt(prompt: StoredPrompt): Prompt {
+  return {
+    id: prompt.id,
+    title: prompt.title,
+    content: prompt.content,
+    category: prompt.category?.trim() || "Sem categoria",
+  };
+}
+
 export default function App() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [selected, setSelected] = useState<Prompt | null>(null);
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todas");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isStorageReady, setIsStorageReady] = useState(false);
 
@@ -39,7 +58,7 @@ export default function App() {
         const data = await storage.load();
         if (!isMounted) return;
 
-        setPrompts(data);
+        setPrompts(data.map((prompt) => normalizePrompt(prompt as StoredPrompt)));
         setIsStorageReady(true);
       } catch (error) {
         console.error("Falha ao carregar prompts.json", error);
@@ -59,7 +78,6 @@ export default function App() {
 
   useEffect(() => {
     if (!isStorageReady) return;
-
     if (!hasElectronPromptStorage()) return;
 
     const storage = window.promptStorage;
@@ -70,7 +88,7 @@ export default function App() {
     });
   }, [prompts, isStorageReady]);
 
-  const handleSave = (title: string, content: string) => {
+  const handleSave = (title: string, content: string, category: string) => {
     if (!hasElectronPromptStorage()) {
       alert("Execute o app pela janela do Electron para salvar em prompts.json.");
       return;
@@ -81,17 +99,26 @@ export default function App() {
       return;
     }
 
+    const normalizedCategory = category.trim() || "Sem categoria";
+
     if (selected) {
+      const updatedPrompt: Prompt = {
+        ...selected,
+        title,
+        content,
+        category: normalizedCategory,
+      };
+
       setPrompts((prev: Prompt[]) =>
-        prev.map((p: Prompt) =>
-          p.id === selected.id ? { ...p, title, content } : p
-        )
+        prev.map((p: Prompt) => (p.id === selected.id ? updatedPrompt : p))
       );
+      setSelected(updatedPrompt);
     } else {
       const newPrompt: Prompt = {
         id: Date.now().toString(36),
         title,
         content,
+        category: normalizedCategory,
       };
       setPrompts((prev: Prompt[]) => [newPrompt, ...prev]);
       setSelected(newPrompt);
@@ -112,9 +139,30 @@ export default function App() {
 
   const handleNew = () => setSelected(null);
 
-  const filteredPrompts = prompts.filter((p: Prompt) =>
-    p.title.toLowerCase().includes(search.toLowerCase())
+  const categories = useMemo(
+    () =>
+      Array.from(new Set(prompts.map((p) => p.category)))
+        .filter((category) => category.trim() !== "")
+        .sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [prompts]
   );
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+
+    for (const prompt of prompts) {
+      counts[prompt.category] = (counts[prompt.category] || 0) + 1;
+    }
+
+    return counts;
+  }, [prompts]);
+
+  const filteredPrompts = prompts.filter((p: Prompt) => {
+    const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "Todas" || p.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="app">
@@ -123,6 +171,11 @@ export default function App() {
         onOpen={() => setIsSidebarOpen(true)}
         onClose={() => setIsSidebarOpen(false)}
         prompts={filteredPrompts}
+        categories={categories}
+        categoryCounts={categoryCounts}
+        totalPrompts={prompts.length}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
         onSearch={setSearch}
         onSelect={handleSelect}
         onDelete={handleDelete}
@@ -130,6 +183,7 @@ export default function App() {
       />
       <PromptEditor
         prompt={selected}
+        categories={categories}
         onSave={handleSave}
         onCopy={() => {
           if (selected?.content)
